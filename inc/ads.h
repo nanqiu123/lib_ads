@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 
+
 typedef enum
 {
 	ADS_CmdIdReadDeviceInfo = 0x0001, 

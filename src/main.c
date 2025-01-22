@@ -27,24 +27,42 @@ int main(int argc,char *argv[])
 	
 	
     ADS_SetIdPort("192.168.163.8.1.1:851", "192.168.174.130.1.1:48898");
-	//ADS_SetIdPort("172.18.236.114.1.1:801", "192.168.10.230.1.1:0");
+	
 
 	/*发送消息给服务端*/
 	while(1)
 	{
-		LOG_RPINTF("start");
+		LOG_RPINTF("start\r\n");
 		if(Ads_Tcp_Is_Connected()!= 1)
 		{
-			LOG_RPINTF("disconnect");
+			LOG_RPINTF("disconnect\r\n");
+			ADS_Tcp_Close();
+			/*调用connect函数主动发起对服务端的链接*/
+			if(!ADS_Tcp_Connect(ip, port))
+			{
+				LOG_RPINTF("disconnect");
+				exit(-1);
+			}
+			sleep(1);
 		}
 
 		uint8_t response[100] = {0};
 		uint16_t response_lenth = 0;
 		uint8_t writting[10] = {0};
-
+        
+		//ADS_SetIdPort("172.18.236.114.1.1:801", "192.168.10.230.1.1:0");
 		ADS_ReadWrite_Read("BaseModule.Mco.Conveyor_VelocitySoftMode",4,response, &response_lenth);
 		ADS_ReadWrite_Read("BaseModule.Act.CycleTime_L2",4,response, &response_lenth);
+		ADS_ReadWrite_Read("BaseModule.Act.SubstrateCounter",4,response, &response_lenth);
+		ADS_ReadWrite_Read("Transport.iNoSubstrateAt_Px",4,response, &response_lenth);
+		ADS_ReadWrite_Read("BaseModule.Act.BatchCounter",4,response, &response_lenth);
 
+		//ADS_SetIdPort("172.18.236.114.1.1:811", "192.168.10.230.1.1:0");
+		ADS_ReadWrite_Read(".Target_Material_A[67]",15,response, &response_lenth);
+		ADS_ReadWrite_Read(".Target_Material_A[70]",15,response, &response_lenth);
+
+
+		exit(0);
 	}
 }
 

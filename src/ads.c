@@ -621,6 +621,7 @@ char ADS_ReadWrite_Read(uint8_t *value_name, uint16_t read_lenth, uint8_t *retur
 	uint64_t handle = 0;
 	int sta = 0;
 
+
 	LOG_RPINTF("\r\n%s read start\r\n", value_name);
 
 
@@ -632,13 +633,17 @@ char ADS_ReadWrite_Read(uint8_t *value_name, uint16_t read_lenth, uint8_t *retur
 	handle = combine_to_32_bigfirst(receive[0], receive[1], receive[2], receive[3]);
 	sta = ADS_Read(ADS_HANDLE_FOR_VALUE, handle, read_lenth, return_dat, return_lenth);
 	LOG_RPINTF("read data status: %d\r\n", sta);
-	printf_array("data: ", return_dat, 4);
-	reverseArray(return_dat, 4);
-	printf_array("data: ", return_dat, 4);
+	printf("return_lenth: %d\r\n", *return_lenth);
+	printf_array("data: ", return_dat, *return_lenth);
+	reverseArray(return_dat, *return_lenth);
+	printf_array("data: ", return_dat, *return_lenth);
 	LOG_RPINTF("dat_to_float: %f\r\n", hex_to_float(return_dat));
+	LOG_RPINTF("dat_to_string: %s\r\n", return_dat);
+	LOG_RPINTF("dat_to_int: %d\r\n", *(int *)return_dat);
+	LOG_RPINTF("read over\r\n\r\n");
 	if(!sta) return 0;
 
-	LOG_RPINTF("read over\r\n");
+
 	return ;
 }
 

@@ -13,6 +13,7 @@
 #include <poll.h>
 #include "log.h"
 int sockfd = 0;
+int socket_statue = 0;
 
 //==================================================================
 //函 数 名：
@@ -27,7 +28,7 @@ int ADS_Tcp_Connect(uint8_t *ip, uint16_t port)
     if((sockfd=socket(AF_INET,SOCK_STREAM,0))==-1)
     {
          LOG_RPINTF("socket build error\r\n");
-        exit(-1);
+        return -1;
     }
     else
     {
@@ -45,6 +46,8 @@ int ADS_Tcp_Connect(uint8_t *ip, uint16_t port)
     {
         return -1;
     }
+
+    socket_statue = 1;
     return 1;
 }
 
@@ -56,16 +59,7 @@ int ADS_Tcp_Connect(uint8_t *ip, uint16_t port)
 //==================================================================
 int Ads_Tcp_Is_Connected()
 {
-    int error = 0;
-    socklen_t len = sizeof(error);
-    int getsockopt_result = getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len);
-    if (getsockopt_result == -1) {
-        return -1;
-    } else if (error!= 0) {
-        return -1;
-    }
-    
-    return 1;
+    return socket_statue;
 }
 
 
@@ -77,9 +71,8 @@ int Ads_Tcp_Is_Connected()
 //=================================================================
 int ADS_Tcp_Close()
 {
-    if (close(sockfd) == -1) return -1;
-
-    return 1;
+    socket_statue = 0;
+    return close(sockfd);
 }
 
 
@@ -112,7 +105,8 @@ int Ads_Tcp_Receive(uint8_t *message, uint16_t *lenth)
 
     int sta = recv(sockfd,message, 200,0);
 
-    if(sta == -1) return 0;
+    socket_statue = sta > 0? 1:-1;
+    if(sta < 0)  return 0;
     *lenth = sta;
     return 1;
 }
