@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -10,104 +5,97 @@
 #include <sys/ioctl.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
-#include <poll.h>
-#include "log.h"
-int sockfd = 0;
-int socket_statue = 0;
+#include <strings.h>
+
+#include "ads_typdef.h"
+
 
 //==================================================================
-//函 数 名：
-//功能描述：tcp connect 
-//输入参数：ip,port
-//返 回 值：1:success, other:fail
+//功能描述：ADS_Tcp_Connect
+//输入参数：tcp_register
+//返 回 值：1:success, 0:fail
 //=================================================================
-int ADS_Tcp_Connect(uint8_t *ip, uint16_t port)
+int8_t ADS_Tcp_Connect(Tcp_Register_t *tcp_register)
 {
     struct sockaddr_in servaddr;
+    int sockfd = 0;
    /*创建socket*/
     if((sockfd=socket(AF_INET,SOCK_STREAM,0))==-1)
     {
-         LOG_RPINTF("socket build error\r\n");
-        return -1;
-    }
-    else
-    {
-        LOG_RPINTF("socket build success\r\n");
+        return 0;
     }
     
     /*创建sockaddr_in结构体中相关参数*/
     bzero(&servaddr,sizeof(servaddr));
     servaddr.sin_family=AF_INET;
-    servaddr.sin_port=htons(port);
-    servaddr.sin_addr.s_addr= inet_addr((char *)ip);
+    servaddr.sin_port=htons(tcp_register->Tcp_Port);
+    servaddr.sin_addr.s_addr= inet_addr((char *)tcp_register->Tcp_Ip);
     
     /*调用connect函数主动发起对服务端的链接*/
     if(connect(sockfd,(struct sockaddr *) &servaddr,sizeof(servaddr))==-1)
     {
-        return -1;
+        return 0;
     }
 
-    socket_statue = 1;
+    tcp_register->Socket_Handle = sockfd;
+    
     return 1;
 }
 
+
 //==================================================================
-//函 数 名：
 //功能描述：tcp_is_connected
-//输入参数：char *ip, unsigned int port, char *message, int *lenth
-//返 回 值：1:connected, other:disconnected
+//输入参数：tcp_register
+//返 回 值：1:connected, 0:disconnected
 //==================================================================
-int Ads_Tcp_Is_Connected()
+int Ads_Tcp_Is_Connected(Tcp_Register_t *tcp_register)
 {
-    return socket_statue;
+    return tcp_register->Connect_State;
 }
 
 
-//==================================================================
-//函 数 名：
+//==================================================================：
 //功能描述：tcp Close 
-//输入参数：
-//返 回 值：1:success, other:fail
+//输入参数：tcp_register
+//返 回 值：1:success, 0:fail
 //=================================================================
-int ADS_Tcp_Close()
+int ADS_Tcp_Close(Tcp_Register_t *tcp_register)
 {
-    socket_statue = 0;
-    return close(sockfd);
+    tcp_register->Connect_State = 0;
+    return close(tcp_register->Socket_Handle);
 }
 
 
-
 //==================================================================
-//函 数 名：
 //功能描述：tcp_send
-//输入参数：char *message, int lenth
-//返 回 值：1:success, other:fail
+//输入参数：tcp_register  char *message, int lenth
+//返 回 值：1:success, 0:fail
 //==================================================================
-int Ads_Tcp_Send(uint8_t *message, uint16_t lenth)
+int Ads_Tcp_Send(Tcp_Register_t *tcp_register, uint8_t *message, uint16_t lenth)
 {
-      if(Ads_Tcp_Is_Connected() != 1)
+      if(Ads_Tcp_Is_Connected(tcp_register) != 1)
         return -1;
 
-      return send(sockfd,message,lenth,0);
+      return send(tcp_register->Socket_Handle ,message,lenth,0);
 }
 
 
 //==================================================================
-//函 数 名：
 //功能描述：tcp_receive
 //输入参数：char *message, int *lenth
-//返 回 值：1:success, other:fail
+//返 回 值：1:success, 0:fail
 //==================================================================
-int Ads_Tcp_Receive(uint8_t *message, uint16_t *lenth)
+int Ads_Tcp_Receive(Tcp_Register_t *tcp_register,  uint8_t *message, uint16_t *lenth)
 {
-    if(Ads_Tcp_Is_Connected() != 1)
+    if(Ads_Tcp_Is_Connected(tcp_register) != 1)
         return -1;
 
-    int sta = recv(sockfd,message, 200,0);
+    int sta = recv(tcp_register->Socket_Handle,message, 65536,0);
 
-    socket_statue = sta > 0? 1:-1;
+    tcp_register->Connect_State = sta > 0? 1:0;
     if(sta < 0)  return 0;
     *lenth = sta;
+
     return 1;
 }
 
