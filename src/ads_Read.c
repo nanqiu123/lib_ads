@@ -4,7 +4,7 @@
 #include "../inc/ads_tcp.h"
 #include "../inc/ads_tools.h"
 #include "../inc/ads_base.h"
-#include "../inc/log.h"
+#include "../inc/ads_log.h"
 
 
 /*
@@ -45,22 +45,21 @@ char ADS_Read_ResolevFrame(uint8_t *command_frame, uint16_t command_lenth, ADS_R
    if(command_lenth <= AMS_HEADER_BYTES) return 0;
    if(command_frame[0] != 0 || command_frame[1] != 0) return 0;
 
-   if(0 == ADS_Header_ResolveFrame(command_frame, command_lenth, &command->Ams_Tcp_Header, &command->Ams_Header)) return 0;  
+   if(0 == ADS_Header_ResolveFrame(command_frame, &command->Ams_Tcp_Header, &command->Ams_Header)) return 0;  
 
-   index += AMS_HEADER_BYTES;
+   index += AMS_TCP_HEADER_BYTES + AMS_HEADER_BYTES;
 
    BigEndianHexToInterger_ByLittleEndian(&command_frame[index],  (uint64_t *)&command->Receive.Result, sizeof(command->Receive.Result));
    index += sizeof(command->Receive.Result);
 
    BigEndianHexToInterger_ByLittleEndian(&command_frame[index],  (uint64_t *)&command->Receive.Lenth, sizeof(command->Receive.Lenth));
    index += sizeof(command->Receive.Lenth);
-   
-   memcpy(&command->Receive.Data, &command_frame[index], command->Receive.Lenth);
 
-   if(0 == check_endianness())
-   {
-      reverseArray(command->Receive.Data, command->Receive.Lenth);
-   }
+   memcpy(&command->Receive.Data, &command_frame[index], command->Receive.Lenth);
+   // if(0 == check_endianness())
+   // {
+   //    reverseArray(command->Receive.Data, command->Receive.Lenth);
+   // }
 
    return 1;
 }
@@ -68,10 +67,10 @@ char ADS_Read_ResolevFrame(uint8_t *command_frame, uint16_t command_lenth, ADS_R
 
 /*
      ADS_Read
-	 输入参数： ctx: 句柄， gpoup_index： 区域， index_offset： 地址， dat：数据， *lenth 数据长度
+	 输入参数： ctx:句柄； gpoup_index：读区域； index_offset：读地址； read_lenth：读字节数；feedback_dat：返回数据； feedback_lenth：返回数据长度；
 	 输出参数： 1成功， 0失败
 */
-char ADS_Read(Ads_Handle_t *ctx ,ADS_GroupIndex_t gpoup_index, uint64_t index_offset, uint8_t *dat, uint64_t *lenth)
+char ADS_Read(Ads_Handle_t ctx ,ADS_GroupIndex_t gpoup_index, uint64_t index_offset, uint8_t read_lenth, uint8_t *feedback_dat, uint64_t *feedback_lenth)
 {
     ADS_Read_Request_t command_send;
 	 ADS_Read_Receive_t command_receive;
@@ -82,34 +81,33 @@ char ADS_Read(Ads_Handle_t *ctx ,ADS_GroupIndex_t gpoup_index, uint64_t index_of
     uint8_t receive_buff[1024] = {0};
 	 uint16_t receive_lenth = 0;
 
-
-	 if(ctx == NULL || dat == NULL || lenth <= 0) return 0;
+	 if(ctx == NULL || feedback_dat == NULL || read_lenth <= 0) return 0;
 	
 	 command_send.Ams_Tcp_Header.Reserved = 0;
-	 command_send.Ams_Tcp_Header.Command_Lenth = (uint32_t)(AMS_HEADER_BYTES + AMS_READ_REQUEST_BASE_BYTES + *lenth);
+    
+	 command_send.Ams_Tcp_Header.Command_Lenth = (uint32_t)(AMS_HEADER_BYTES + AMS_READ_REQUEST_BASE_BYTES);
 
 	 memcpy(command_send.Ams_Header.AMSNetId_Target,  ctx->Ads_Register.AMSNetId_Target, sizeof(ctx->Ads_Register.AMSNetId_Target));
 	 command_send.Ams_Header.AMSPort_Target = ctx->Ads_Register.AMSPort_Target;
 	
 	 memcpy(command_send.Ams_Header.AMSNetId_Source,  ctx->Ads_Register.AMSNetId_Source, sizeof(ctx->Ads_Register.AMSNetId_Source));
 	 command_send.Ams_Header.AMSPort_Source = ctx->Ads_Register.AMSPort_Source;
-	
+
 	 command_send.Ams_Header.Command_Id = (uint16_t)ADS_CmdId_Read;
 	 
 	 command_send.Ams_Header.State_Flags = (uint16_t)ADS_StateFlags_COMMAND;
 	
-	 command_send.Ams_Header.Data_Length = AMS_READ_REQUEST_BASE_BYTES + *lenth;     // 数据域长度
+	 command_send.Ams_Header.Data_Length = AMS_READ_REQUEST_BASE_BYTES;     // 数据域长度
 	
 	 command_send.Ams_Header.Error_Code = (uint32_t)ADS_ErrorCode_NoError;
 	 
 	 command_send.Ams_Header.Invoke_Id = 1;       // 写多少都行
 
-
     command_send.Request.Index_Group = (uint32_t)gpoup_index;
     
     command_send.Request.Index_Offset = (uint32_t)index_offset;
     
-    command_send.Request.Lenth = (uint32_t)*lenth;
+    command_send.Request.Lenth = (uint32_t)read_lenth;
     
 	 if(0 == ADS_Read_BuildFrame(&command_send, send_buff, &send_lenth)) return 0;  
 	 	 
@@ -119,19 +117,20 @@ char ADS_Read(Ads_Handle_t *ctx ,ADS_GroupIndex_t gpoup_index, uint64_t index_of
 
 	 
 	 if(0 == Ads_Tcp_Receive(&ctx->Tcp_Register, receive_buff, &receive_lenth)) return 0;
-	 LOG_RPINTF("read lenth: %d\n", receive_lenth);
-	 printf_array("read buff: ", receive_buff, receive_lenth);
+	 LOG_RPINTF("receive lenth: %d\n", receive_lenth);
+	 printf_array("receive buff: ", receive_buff, receive_lenth);
 
-    command_receive.Receive.Data = dat;
+    command_receive.Receive.Data = feedback_dat;
 	 if(0 == ADS_Read_ResolevFrame(receive_buff, receive_lenth, &command_receive)) return 0;
-
+    
     if(command_receive.Ams_Header.Error_Code != ADS_ErrorCode_NoError) return 0;
+   
     if(command_receive.Receive.Result != ADS_ErrorCode_NoError) return 0;
+   
+     memcpy(feedback_dat, &command_receive.Receive.Data, command_receive.Receive.Lenth);
+     *feedback_lenth =  command_receive.Receive.Lenth;
 
-    memcpy(dat, command_receive.Receive.Data, command_receive.Receive.Lenth);
-    *lenth =  command_receive.Receive.Lenth;
-
-     
+     printf_array("comeout: ", feedback_dat,  *feedback_lenth);
 
 	 return 1;
 }

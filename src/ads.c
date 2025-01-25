@@ -5,7 +5,7 @@
 #include "../inc/ads.h"
 #include "../inc/ads_tcp.h"
 #include "../inc/ads_tools.h"
-#include "../inc/log.h"
+#include "../inc/ads_log.h"
 #include "../inc/ads_tools.h"
 
 /*
@@ -13,10 +13,9 @@
 	 输入参数：
 	 输出参数：  句柄地址
 */
- Ads_Handle_t* ADS_CreatHandle(void)
+ Ads_Handle_t ADS_CreatHandle(void)
 {
-	Ads_Handle_t *ctx = malloc(sizeof(Ads_Handle_t));
-	return ctx;
+	return (Ads_Handle_t)malloc(sizeof(Ads_Handle_));
 }
 
 
@@ -25,7 +24,7 @@
 	 输入参数：ctx: 句柄
 	 输出参数：  
 */
-void ADS_ReleaseHandle(Ads_Handle_t* ctx)
+void ADS_ReleaseHandle(Ads_Handle_t ctx)
 {
 	free(ctx);
 }
@@ -36,7 +35,7 @@ void ADS_ReleaseHandle(Ads_Handle_t* ctx)
 	 输入参数： ctx:句柄	 ip: ip地址， port: 端口
 	 输出参数： 1成功， 0失败 
 */
-char ADS_Connect(Ads_Handle_t *ctx, uint8_t *ip, uint16_t port)
+char ADS_Connect(Ads_Handle_t  ctx, uint8_t *ip, uint16_t port)
 {
 	ctx->Tcp_Register.Tcp_Port = port;
 	strcpy((char *)ctx->Tcp_Register.Tcp_Ip, (char *)ip);
@@ -53,23 +52,31 @@ char ADS_Connect(Ads_Handle_t *ctx, uint8_t *ip, uint16_t port)
 	 输出参数： 1成功， 0失败
 	 
 */
-char ADS_SetVirtualIdPort(Ads_Handle_t *ctx ,uint8_t *ams_netid_target, uint16_t ams_port_target, uint8_t *ams_netid_source, uint16_t ams_port_source)
+char ADS_SetVirtualIdPort(Ads_Handle_t ctx ,uint8_t *ams_netid_target, uint16_t ams_port_target, uint8_t *ams_netid_source, uint16_t ams_port_source)
 {
-	 uint8_t str[50] = {0};
-	 if(ams_netid_target == NULL || ams_netid_source == NULL) return 0;
+     if(ams_netid_target == NULL || ams_netid_source == NULL) return 0;
 	
-	 strcpy((char *)str,  (char *)ams_netid_target);
-	 ctx->Ads_Register.AMSNetId_Target[0] = atoi(strtok((char *)str, "."));
-	 for(int i = 1; i < 6; i ++)
-     ctx->Ads_Register.AMSNetId_Target[i] = atoi(strtok(NULL, "."));  
-	 ctx->Ads_Register.AMSPort_Target = ams_port_target; 
-	
+	  sscanf(ams_netid_target, "%hhd.%hhd.%hhd.%hhd.%hhd.%hhd", 
+	  &ctx->Ads_Register.AMSNetId_Target[0],
+	  &ctx->Ads_Register.AMSNetId_Target[1],
+	  &ctx->Ads_Register.AMSNetId_Target[2],
+	  &ctx->Ads_Register.AMSNetId_Target[3],
+	  &ctx->Ads_Register.AMSNetId_Target[4],
+	  &ctx->Ads_Register.AMSNetId_Target[5]
+	  );
 
-	 strcpy((char *)str, (char *)ams_netid_source);
-	 ctx->Ads_Register.AMSNetId_Source[0] = atoi(strtok((char *)strstr, "."));
-	 for(int i = 1; i < 6; i ++)
-     ctx->Ads_Register.AMSNetId_Source[i] = atoi(strtok(NULL, "."));  
-	 ctx->Ads_Register.AMSPort_Source = ams_port_source; 
+      ctx->Ads_Register.AMSPort_Target = ams_port_target; 
+
+	  sscanf(ams_netid_source, "%hhd.%hhd.%hhd.%hhd.%hhd.%hhd", 
+	  &ctx->Ads_Register.AMSNetId_Source[0],
+	  &ctx->Ads_Register.AMSNetId_Source[1],
+	  &ctx->Ads_Register.AMSNetId_Source[2],
+	  &ctx->Ads_Register.AMSNetId_Source[3],
+	  &ctx->Ads_Register.AMSNetId_Source[4],
+	  &ctx->Ads_Register.AMSNetId_Source[5]
+	  );
+
+      ctx->Ads_Register.AMSPort_Source = ams_port_source; 
 	 
 	 return 1;
 }

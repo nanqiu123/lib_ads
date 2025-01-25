@@ -7,8 +7,8 @@
 #include <unistd.h>
 #include <strings.h>
 
-#include "ads_typdef.h"
-
+#include "ads_typedef.h"
+#include "../inc/ads_log.h"
 
 //==================================================================
 //功能描述：ADS_Tcp_Connect

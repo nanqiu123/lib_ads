@@ -4,7 +4,7 @@
 #include "../inc/ads_tcp.h"
 #include "../inc/ads_tools.h"
 #include "../inc/ads_base.h"
-#include "../inc/log.h"
+#include "../inc/ads_log.h"
 /*
      组帧
 	 输入参数： (ADS_DeleteDeviceNotification_Request_t *command, uint8_t *command_frame, uint16_t *command_lenth)
@@ -37,9 +37,9 @@ char ADS_DeleteDeciveNitification_ResolevFrame(uint8_t *command_frame, uint16_t 
    if(command_lenth <= AMS_HEADER_BYTES) return 0;
    if(command_frame[0] != 0 || command_frame[1] != 0) return 0;
 
-   if(0 == ADS_Header_ResolveFrame(command_frame, command_lenth, &command->Ams_Tcp_Header, &command->Ams_Header)) return 0;  
+   if(0 == ADS_Header_ResolveFrame(command_frame, &command->Ams_Tcp_Header, &command->Ams_Header)) return 0;  
 
-   index += AMS_HEADER_BYTES;
+   index += AMS_HEADER_BYTES + AMS_TCP_HEADER_BYTES;
 
    BigEndianHexToInterger_ByLittleEndian(&command_frame[index], (uint64_t *)&command->Receive.Result, sizeof(command->Receive.Result));
    index += sizeof(command->Receive.Result);
@@ -53,7 +53,7 @@ char ADS_DeleteDeciveNitification_ResolevFrame(uint8_t *command_frame, uint16_t 
 	 输入参数： (Ads_Handle_t *ctx , uint8_t *handle_of_notification)
 	 输出参数： 1成功， 0失败
 */
-char ADS_DeleteDeciveNitification(Ads_Handle_t *ctx , uint8_t handle_of_notification)
+char ADS_DeleteDeciveNitification(Ads_Handle_t ctx , uint8_t handle_of_notification)
 {
     ADS_DeleteDeviceNotification_Request_t command_send;
 	 ADS_DeleteDeviceNotification_Receive_t command_receive;
@@ -61,7 +61,7 @@ char ADS_DeleteDeciveNitification(Ads_Handle_t *ctx , uint8_t handle_of_notifica
 	 uint8_t send_buff[1024] = {0};
 	 uint16_t send_lenth = 0;
 	 
-    uint8_t receive_buff[1024] = {0};
+     uint8_t receive_buff[1024] = {0};
 	 uint16_t receive_lenth = 0;
 
 
@@ -86,8 +86,8 @@ char ADS_DeleteDeciveNitification(Ads_Handle_t *ctx , uint8_t handle_of_notifica
 	 
 	 command_send.Ams_Header.Invoke_Id = 1;       // 写多少都行
 
-
-    command_send.Request.Notification_Handle = handle_of_notification;
+ 
+     command_send.Request.Notification_Handle = handle_of_notification;
     
 	 if(0 == ADS_DeleteDeciveNitification_BuildFrame(&command_send, send_buff, &send_lenth)) return 0;  
 	 	 
@@ -97,13 +97,13 @@ char ADS_DeleteDeciveNitification(Ads_Handle_t *ctx , uint8_t handle_of_notifica
 
 	 
 	 if(0 == Ads_Tcp_Receive(&ctx->Tcp_Register, receive_buff, &receive_lenth)) return 0;
-	 LOG_RPINTF("DeleteDeviceNotification lenth: %d\n", receive_lenth);
-	 printf_array("DeleteDeviceNotification buff: ", receive_buff, receive_lenth);
+	 LOG_RPINTF("receive lenth: %d\n", receive_lenth);
+	 printf_array("receive buff: ", receive_buff, receive_lenth);
 
 	 if(0 == ADS_DeleteDeciveNitification_ResolevFrame(receive_buff, receive_lenth, &command_receive)) return 0;
 
-    if(command_receive.Ams_Header.Error_Code != ADS_ErrorCode_NoError) return 0;
-    if(command_receive.Receive.Result != ADS_ErrorCode_NoError) return 0;
+     if(command_receive.Ams_Header.Error_Code != ADS_ErrorCode_NoError) return 0;
+     if(command_receive.Receive.Result != ADS_ErrorCode_NoError) return 0;
 
 	 return 1;
 }

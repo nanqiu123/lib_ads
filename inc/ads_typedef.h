@@ -53,6 +53,7 @@ typedef enum
 //基础结构定义
 //
 /***************************************************************************/
+#define AMS_TCP_HEADER_BYTES 6
 typedef struct 
 {
     uint16_t  Reserved;   // 保留 写0
@@ -421,7 +422,7 @@ typedef struct
 {
     Tcp_Register_t  Tcp_Register;
 	ADS_Register_t  Ads_Register;
-}Ads_Handle_t;                   // ADS句柄
+}Ads_Handle_;                   // ADS句柄
 
-
+typedef  Ads_Handle_* Ads_Handle_t;  
 #endif 

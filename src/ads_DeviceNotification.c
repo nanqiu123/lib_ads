@@ -37,7 +37,7 @@ char ADS_DeciveNitification_ResolevFrame(uint8_t *command_frame, uint16_t comman
    if(command_lenth <= AMS_HEADER_BYTES) return 0;
    if(command_frame[0] != 0 || command_frame[1] != 0) return 0;
 
-   if(0 == ADS_Header_ResolveFrame(command_frame, command_lenth, &command->Ams_Tcp_Header, &command->Ams_Header)) return 0;  
+   if(0 == ADS_Header_ResolveFrame(command_frame, &command->Ams_Tcp_Header, &command->Ams_Header)) return 0;  
 
    index += AMS_HEADER_BYTES;
 
@@ -53,7 +53,7 @@ char ADS_DeciveNitification_ResolevFrame(uint8_t *command_frame, uint16_t comman
 	 输入参数： (Ads_Handle_t *ctx , uint8_t *handle_of_notification)
 	 输出参数： 1成功， 0失败
 */
-char ADS_DeviceNitification(Ads_Handle_t *ctx , AMS_DeviceNotification_Request_Dat_t *dat)
+char ADS_DeviceNitification(Ads_Handle_t ctx , AMS_DeviceNotification_Request_Dat_t *dat)
 {
    //  ADS_DeviceNotification_Request_t command_send;
 	// // ADS_DeviceNotification_Receive_t command_receive;  // 资料不够，无法实现

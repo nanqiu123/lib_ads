@@ -4,7 +4,7 @@
 #include "../inc/ads_tcp.h"
 #include "../inc/ads_tools.h"
 #include "../inc/ads_base.h"
-#include "../inc/log.h"
+#include "../inc/ads_log.h"
 
 
 /*
@@ -33,9 +33,9 @@ char ADS_ReadDeviceInfo_ResolevFrame(uint8_t *command_frame, uint16_t command_le
    if(command_lenth <= AMS_HEADER_BYTES) return 0;
    if(command_frame[0] != 0 || command_frame[1] != 0) return 0;
 
-   if(0 == ADS_Header_ResolveFrame(command_frame, command_lenth, &command->Ams_Tcp_Header, &command->Ams_Header)) return 0;  
+   if(0 == ADS_Header_ResolveFrame(command_frame, &command->Ams_Tcp_Header, &command->Ams_Header)) return 0;  
 
-   index += AMS_HEADER_BYTES;
+   index += AMS_HEADER_BYTES + AMS_TCP_HEADER_BYTES;
 
    BigEndianHexToInterger_ByLittleEndian(&command_frame[index],  (uint64_t *)&command->Receive.Result, sizeof(command->Receive.Result));
    index += sizeof(command->Receive.Result);
@@ -57,19 +57,19 @@ char ADS_ReadDeviceInfo_ResolevFrame(uint8_t *command_frame, uint16_t command_le
 
 
 /*
-     ADS_ReadDeviceInfo
-	 输入参数： ctx: 句柄， gpoup_index： 区域， index_offset： 地址，AMS_ReadDeviceInfo_Receive_Dat_t *dat：数据
+     ADS_ReadDeviceInfo  // 因资料不足，无实际报文，暂未实现读取数据的解析
+	 输入参数： ctx: 句柄,AMS_ReadDeviceInfo_Receive_Dat_t *dat：数据
 	 输出参数： 1成功， 0失败
 */
-char ADS_ReadDeviceInfo(Ads_Handle_t *ctx ,ADS_GroupIndex_t gpoup_index, AMS_ReadDeviceInfo_Receive_Dat_t *dat)
+char ADS_ReadDeviceInfo(Ads_Handle_t  ctx, AMS_ReadDeviceInfo_Receive_Dat_t *dat)
 {
-    ADS_ReadDeviceInfo_Request_t command_send;
+     ADS_ReadDeviceInfo_Request_t command_send;
 	 ADS_ReadDeviceInfo_Receive_t command_receive;
 	
 	 uint8_t send_buff[1024] = {0};
 	 uint16_t send_lenth = 0;
 	 
-    uint8_t receive_buff[1024] = {0};
+     uint8_t receive_buff[1024] = {0};
 	 uint16_t receive_lenth = 0;
 
 
@@ -102,11 +102,13 @@ char ADS_ReadDeviceInfo(Ads_Handle_t *ctx ,ADS_GroupIndex_t gpoup_index, AMS_Rea
 
 	 
 	 if(0 == Ads_Tcp_Receive(&ctx->Tcp_Register, receive_buff, &receive_lenth)) return 0;
-	 LOG_RPINTF("read lenth: %d\n", receive_lenth);
-	 printf_array("read buff: ", receive_buff, receive_lenth);
+	 LOG_RPINTF("receive lenth: %d\n", receive_lenth);
+	 printf_array("receive buff: ", receive_buff, receive_lenth);
 
 	 if(0 == ADS_ReadDeviceInfo_ResolevFrame(receive_buff, receive_lenth, &command_receive)) return 0;
 
-    memcpy(dat, &command_receive.Receive, sizeof(command_receive.Receive));
+  	 if(command_receive.Ams_Header.Error_Code != ADS_ErrorCode_NoError) return 0;
+   
+     memcpy(dat, &command_receive.Receive, sizeof(command_receive.Receive));
 	 return 1;
 }

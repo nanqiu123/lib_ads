@@ -1,7 +1,7 @@
 #ifndef _ADS_TCP_H_
 #define _ADS_TCP_H_
 #include <stdint.h>
-#include "ads_typdef.h"
+#include "ads_typedef.h"
 
 //==================================================================
 //功能描述：ADS_Tcp_Connect

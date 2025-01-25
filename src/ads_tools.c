@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <string.h>
-#include "../inc/log.h"
+#include "../inc/ads_log.h"
 
 
 // 反转数组的函数
@@ -135,7 +135,7 @@ void BigEndianHexToInterger_ByLittleEndian(uint8_t *hex,  uint64_t *num, uint16_
     uint64_t tem_num = 0;
 
     tem_num = Hex_To_Interger(hex, num_bytes); 
-    if(0 == check_endianness())   // 小端
+    if(1 == check_endianness())   // 大端
     {
        tem_num = Endian_Swap(tem_num, num_bytes);
     }

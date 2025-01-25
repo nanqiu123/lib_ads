@@ -4,7 +4,7 @@
 #include "../inc/ads_tcp.h"
 #include "../inc/ads_tools.h"
 #include "../inc/ads_base.h"
-#include "../inc/log.h"
+#include "../inc/ads_log.h"
 
 /*
      组帧
@@ -17,6 +17,7 @@ static char ADS_WriteControl_BuildFrame(ADS_WriteControl_Request_t *command, uin
    if(command == NULL || command_frame == NULL) return 0;
    if(0 == ADS_Header_BuildFrame(&command->Ams_Tcp_Header, &command->Ams_Header, command_frame, &index)) return  0;
 
+
    LittleEndianIntergerToHex_ByBigEndian(command->Request.ADS_State, sizeof(command->Request.ADS_State), &command_frame[index]);
    index += sizeof(command->Request.ADS_State);
 
@@ -26,13 +27,13 @@ static char ADS_WriteControl_BuildFrame(ADS_WriteControl_Request_t *command, uin
    LittleEndianIntergerToHex_ByBigEndian(command->Request.Lenth, sizeof(command->Request.Lenth),&command_frame[index] );
    index += sizeof(command->Request.Lenth);
 
-      reverseArray(&command_frame[index], command->Request.Lenth);
+   LOG_RPINTF("index: %d, lenth: %d\r\n", index,command->Request.Lenth);
    memcpy(&command_frame[index], command->Request.Data, command->Request.Lenth);
-
    if(0 == check_endianness())
    {
       reverseArray(&command_frame[index], command->Request.Lenth);
    }
+
 
    index += command->Request.Lenth;
    *command_lenth = index;
@@ -47,12 +48,19 @@ static char ADS_WriteControl_BuildFrame(ADS_WriteControl_Request_t *command, uin
 */
 char ADS_WriteControl_ResolevFrame(uint8_t *command_frame, uint16_t command_lenth, ADS_WriteControl_Receive_t *command)
 {
+   int index = 0;
    if(command == NULL || command_frame == NULL) return 0;
 
    if(command_lenth <= AMS_HEADER_BYTES) return 0;
    if(command_frame[0] != 0 || command_frame[1] != 0) return 0;
 
-   if(0 == ADS_Header_ResolveFrame(command_frame, command_lenth, &command->Ams_Tcp_Header, &command->Ams_Header)) return 0;  
+   if(0 == ADS_Header_ResolveFrame(command_frame, &command->Ams_Tcp_Header, &command->Ams_Header)) return 0;  
+
+
+   index += AMS_TCP_HEADER_BYTES + AMS_HEADER_BYTES;
+
+   BigEndianHexToInterger_ByLittleEndian(&command_frame[index],  (uint64_t *)&command->Receive.Result, sizeof(command->Receive.Result));
+   index += sizeof(command->Receive.Result);
 
    return 1;
 }
@@ -60,10 +68,9 @@ char ADS_WriteControl_ResolevFrame(uint8_t *command_frame, uint16_t command_lent
 
 /*
     ADS_WriteControl
-	 输入参数： ctx: 句柄， gpoup_index： 区域， index_offset： 地址， dat：数据， lenth 数据长度
-	 输出参数： 1成功， 0失败
+	 输入参数： ctx: 句柄，  dat：数据
 */
-char ADS_WriteControl(Ads_Handle_t *ctx, uint8_t *dat, uint64_t lenth)
+char ADS_WriteControl(Ads_Handle_t  ctx, uint16_t ads_state, uint16_t device_sate, uint8_t *dat, uint16_t lenth)
 {
     ADS_WriteControl_Request_t command_send;
 	 ADS_WriteControl_Receive_t command_receive;
@@ -90,15 +97,17 @@ char ADS_WriteControl(Ads_Handle_t *ctx, uint8_t *dat, uint64_t lenth)
 	 
 	 command_send.Ams_Header.State_Flags = (uint16_t)ADS_StateFlags_COMMAND;
 	
-	 command_send.Ams_Header.Data_Length = (uint32_t)AMS_WRITECONTROL_REQUEST_BASE_BYTES + lenth;    // 数据域长度
+	 command_send.Ams_Header.Data_Length = (uint32_t)(AMS_WRITECONTROL_REQUEST_BASE_BYTES + lenth);    // 数据域长度
 	
 	 command_send.Ams_Header.Error_Code = (uint32_t)ADS_ErrorCode_NoError;
 	 
 	 command_send.Ams_Header.Invoke_Id = 1;       // 写多少都行
     
-    command_send.Request.Lenth = (uint32_t)lenth;
     
-    memcpy(&command_send.Request.Data, dat, sizeof(dat));
+    command_send.Request.ADS_State = ads_state;
+    command_send.Request.Device_State = device_sate;
+    command_send.Request.Data = dat;
+    command_send.Request.Lenth = lenth;
 
 
 	 if(0 == ADS_WriteControl_BuildFrame(&command_send, send_buff, &send_lenth)) return 0;  
@@ -110,8 +119,8 @@ char ADS_WriteControl(Ads_Handle_t *ctx, uint8_t *dat, uint64_t lenth)
 
 	 
 	 if(0 == Ads_Tcp_Receive(&ctx->Tcp_Register, receive_buff, &receive_lenth)) return 0;
-	 LOG_RPINTF("WriteControl lenth: %d\n", receive_lenth);
-	 printf_array("WriteControl buff: ", receive_buff, receive_lenth);
+	 LOG_RPINTF("receive lenth: %d\n", receive_lenth);
+	 printf_array("receive buff: ", receive_buff, receive_lenth);
 
 	 if(0 == ADS_WriteControl_ResolevFrame(receive_buff, receive_lenth, &command_receive)) return 0;
 
