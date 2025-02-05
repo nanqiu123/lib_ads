@@ -31,12 +31,12 @@ typedef enum
 
 typedef enum
 {						 
-	 ADS_GroupIndex_M  = 0x00004020,      
+	 ADS_GroupIndex_M u = 0x00004020,      
 	 ADS_GroupIndex_MX = 0x00004021,    
 	 ADS_GroupIndex_I  = 0x0000F020,      
 	 ADS_GroupIndex_IX = 0x0000F021, 
 	 ADS_GroupIndex_Q  = 0x0000F030, 
-	 ADS_GroupIndex_QX = 0X0000f0310, 
+	 ADS_GroupIndex_QX = 0X0000f031, 
 	 ADS_GroupIndex_HANDLE = 0x0000F003, 
 	 ADS_GroupIndex_HANDLE_FOR_VALUE = 0x0000F005,  
 	 ADS_GroupIndex_RELEASE_HANDLE = 0x0000F006
